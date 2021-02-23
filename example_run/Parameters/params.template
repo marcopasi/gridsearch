@@ -1,0 +1,34 @@
+[global]
+
+#########
+# default fitted parameters
+#########
+pa                  = {pa}
+pb                  = {pb}
+pc                  = {pb}
+kex_ab              = {kex_ab}
+kex_bc              = {kex_bc}
+kex_ac              = {kex_ac}
+dw_ab               = 3.5
+dw_ac               = 3.5
+dw_bc               = 1.0
+#r1_a, B0->700.0MHz  = 2.0          ;in s^-1
+#r1_a, B0->950.0MHz  = 1.5          ;in s^-1
+#r2_a, B0->700.0MHz  = 6.0          ;in s^-1
+#r2_a, B0->950.0MHz  = 6.0          ;in s^-1
+
+#########
+# default residue specific
+#########
+
+[cs_a]
+file = ../Input/n15_cs_true.txt
+
+[dw_ab]
+file = ../Input/n15_dw.txt
+
+[r1_a, B0->700.0MHz]
+#file = ../Input/n15_rNz_700.txt      ; data can be specified from input files
+
+[r1_a, B0->950.0MHz]
+#file = ../Input/n15_rNz_950.txt
