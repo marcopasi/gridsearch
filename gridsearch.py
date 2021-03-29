@@ -11,6 +11,8 @@
 # ------------------- Section 2. USAGE: --------------------
 """
   gridsearch.py
+  Syntax: gridsearch.py [-v] [-n NTASKS]
+
   Usage instructions:
 
   1) Copy this script to  your working directory,  where all
@@ -72,7 +74,7 @@ parameters = dict(
      python multi_run_2d.py
 
 """
-# ------------------- Section 3. IMPORTS -------------------
+# ------------- Section 3. IMPORTS & ARGUMENTS -------------
 import os, sys, glob
 try:
     from chemex import chemex
@@ -80,6 +82,16 @@ except ModuleNotFoundError:
     from dummy import dummy as chemex  # this line for testing
 from sklearn.model_selection import ParameterGrid
 from joblib import Parallel, delayed
+import optparse
+parser = optparse.OptionParser()
+parser.add_option('-v', '--verbose',
+                  action="store_true", dest="verbose",
+                  help="be verbose (default False)",
+                  default=0)
+parser.add_option('-n', '--ntasks', type=int,
+                  action="store", dest="ntasks",
+                  help="number of parallel tasks (default 1)",
+                  default=1)
 
 # ---------------- Section 4. CONFIGURATION ----------------
 verbose = False
@@ -100,7 +112,8 @@ parameters = dict(
     kex_bc=[600],
     kex_ac=[600])
 
-n_tasks = 1  # for parallel executions, increase this above 1
+ntasks = 1  # for parallel executions, increase this above 1
+
 # --------------------- Section 5. RUN ---------------------
 def make_parameter_file(template, output, params):
     """Format template to output using params"""
@@ -119,63 +132,75 @@ def chemex_main(t_args):
     #        -f function
     return chemex.main()
 
-if verbose:
-    print(kexfile, function, methodfile, paramfile_template, outfile_name)
+def main():
+    options, args = parser.parse_args()
+    verbose = options.verbose
+    ntasks = options.ntasks
 
-# Create chemex args
-args = ["chemex", "fit"]
-args.extend(["-e"] + glob.glob(experiment_glob))
-args.extend(["-m", methodfile])
-args.extend(["-d", kexfile])
-args.extend(["-f", function])
-
-# Main loop
-tasks = []  # for parallel
-for params in ParameterGrid(parameters):
     if verbose:
-        print("Job with params {}".format(params))
-    # Create Parameter file name by replacing placeholders
-    try:
-        paramfile = paramfile_name.format(**params)
-    except KeyError:
-        print("""\
-Missing parameter definition for paramfile_name '{}'""".format(
-    paramfile_name))
+        print("Verbose run. Configuration: ",
+              kexfile, function, methodfile,
+              paramfile_template, outfile_name)
+        print("ntasks : {}".format(ntasks))
 
-    # Replace placeholders in paramfile_template combining
-    # information about current grid point and the parameters
-    # dict, to create the output paramfile.
-    try:
-        make_parameter_file(
-            paramfile_template, paramfile, params)
-    except KeyError:
-        print("""\
-Missing parameter definition for paramfile_template '{}'""".format(
-    paramfile_template))
+    # Create chemex args
+    args = ["chemex", "fit"]
+    args.extend(["-e"] + glob.glob(experiment_glob))
+    args.extend(["-m", methodfile])
+    args.extend(["-d", kexfile])
+    args.extend(["-f", function])
 
-    # Create Output file name by replacing placeholders
-    try:
-        outfile = outfile_name.format(**params)
-    except KeyError:
-        print("""\
-Missing parameter definition for outfile_name '{}'""".format(
-        outfile_name))
-
-    # Create dummy sys.argv to pass arguments to chemex.main
-    t_args = args + \
-        ["-p", paramfile] + \
-        ["-o", outfile]
-
-    if n_tasks > 1:
-        tasks.append(delayed(chemex_main)(t_args))
-    else:
-        result = chemex_main(t_args)
+    # Main loop
+    tasks = []  # for parallel
+    for params in ParameterGrid(parameters):
         if verbose:
-            print(result)
+            print("Job with params {}".format(params))
+        # Create Parameter file name by replacing placeholders
+        try:
+            paramfile = paramfile_name.format(**params)
+        except KeyError:
+            print("""\
+Missing parameter definition for paramfile_name '{}'""".format(
+        paramfile_name))
 
-if len(tasks) > 0:
-    results = Parallel(n_jobs=n_tasks, verbose=50*verbose)(tasks)
-    if verbose:
-        for result in results:
-            print(result)
-# ----------------------------------------------------------
+        # Replace placeholders in paramfile_template combining
+        # information about current grid point and the parameters
+        # dict, to create the output paramfile.
+        try:
+            make_parameter_file(
+                paramfile_template, paramfile, params)
+        except KeyError:
+            print("""\
+Missing parameter definition for paramfile_template '{}'""".format(
+        paramfile_template))
+
+        # Create Output file name by replacing placeholders
+        try:
+            outfile = outfile_name.format(**params)
+        except KeyError:
+            print("""\
+Missing parameter definition for outfile_name '{}'""".format(
+            outfile_name))
+
+        # Create dummy sys.argv to pass arguments to chemex.main
+        t_args = args + \
+            ["-p", paramfile] + \
+            ["-o", outfile]
+
+        if ntasks > 1:
+            tasks.append(delayed(chemex_main)(t_args))
+        else:
+            result = chemex_main(t_args)
+            if verbose:
+                print(result)
+
+    if len(tasks) > 0:
+        results = Parallel(n_jobs=ntasks, verbose=50*verbose)(tasks)
+        if verbose:
+            for result in results:
+                print(result)
+    # ----------------------------------------------------------
+
+if __name__ == "__main__":
+    # execute only if run as a script
+    main()
