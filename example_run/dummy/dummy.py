@@ -1,5 +1,6 @@
-import sys
+import sys, time
 
-def main():
+def main(sleeptime=0):
     # print(sys.argv)
-    return sys.argv
+    time.sleep(sleeptime)
+    return sys.argv + [time.ctime()]
