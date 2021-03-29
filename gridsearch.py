@@ -105,41 +105,7 @@ def make_parameter_file(template, output, params):
     with open(template) as fin, open(output, 'w') as fout:
        fout.write(fin.read().format(**params))
 
-if verbose:
-    print(kexfile, function, methodfile, paramfile_template, outfile_name)
-
-# Create chemex args
-args = ["chemex", "fit"]
-args.extend(["-e"] + glob.glob(experiment_glob))
-args.extend(["-m", methodfile])
-args.extend(["-d", kexfile])
-args.extend(["-f", function])
-
-for params in ParameterGrid(parameters):
-    if verbose:
-        print("Running {}".formate(params))
-    # Create Parameter file name by replacing placeholders
-    try:
-        paramfile = paramfile_name.format(**params)
-    except KeyError:
-        print("Missing parameter definition for paramfile_name '{}'".format(paramfile_name))
-    # Replace placeholders in paramfile_template combining
-    # information about current grid point and the parameters
-    # dict, to create the output paramfile.
-    try:
-        make_parameter_file(
-            paramfile_template, paramfile, params)
-    except KeyError:
-        print("Missing parameter definition for paramfile_template '{}'".format(paramfile_template))
-    # Create Output file name by replacing placeholders
-    try:
-        outfile = outfile_name.format(**params)
-    except KeyError:
-        print("Missing parameter definition for outfile_name '{}'".format(outfile_name))
-    # Create dummy sys.argv to pass arguments to chemex.main
-    t_args = args + \
-        ["-p", paramfile] + \
-        ["-o", outfile]
+def chemex_main(t_args):
     sys.argv = t_args
     # Call chemex.main to execute:
     #    python -m chemex fit
@@ -150,5 +116,53 @@ for params in ParameterGrid(parameters):
     #        -o outfile
     #        -f function
     chemex.main()
+
+if verbose:
+    print(kexfile, function, methodfile, paramfile_template, outfile_name)
+
+# Create chemex args
+args = ["chemex", "fit"]
+args.extend(["-e"] + glob.glob(experiment_glob))
+args.extend(["-m", methodfile])
+args.extend(["-d", kexfile])
+args.extend(["-f", function])
+
+# Main loop
+for params in ParameterGrid(parameters):
+    if verbose:
+        print("Running {}".formate(params))
+    # Create Parameter file name by replacing placeholders
+    try:
+        paramfile = paramfile_name.format(**params)
+    except KeyError:
+        print("""\
+Missing parameter definition for paramfile_name '{}'""".format(
+    paramfile_name))
+
+    # Replace placeholders in paramfile_template combining
+    # information about current grid point and the parameters
+    # dict, to create the output paramfile.
+    try:
+        make_parameter_file(
+            paramfile_template, paramfile, params)
+    except KeyError:
+        print("""\
+Missing parameter definition for paramfile_template '{}'""".format(
+    paramfile_template))
+
+    # Create Output file name by replacing placeholders
+    try:
+        outfile = outfile_name.format(**params)
+    except KeyError:
+        print("""\
+Missing parameter definition for outfile_name '{}'""".format(
+        outfile_name))
+
+    # Create dummy sys.argv to pass arguments to chemex.main
+    t_args = args + \
+        ["-p", paramfile] + \
+        ["-o", outfile]
+
+    chemex_main(t_args)
 
 # ----------------------------------------------------------
