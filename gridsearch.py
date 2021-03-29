@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # v0.4 210222
+# v0.5 210329
 #
 # -------------------- Section 1. TODO: --------------------
 #  2) Read configurations from file
@@ -73,8 +74,10 @@ parameters = dict(
 """
 # ------------------- Section 3. IMPORTS -------------------
 import os, sys, glob
-from chemex import chemex
-# from dummy import dummy as chemex  # this line for testing
+try:
+    from chemex import chemex
+except ModuleNotFoundError:
+    from dummy import dummy as chemex  # this line for testing
 from sklearn.model_selection import ParameterGrid
 
 # ---------------- Section 4. CONFIGURATION ----------------
@@ -83,8 +86,8 @@ kexfile = "3st.pb_kex"
 function = "powell"
 experiment_glob = "Experiments/*.cfg"
 methodfile = "Methods/method_3st_III_n15.cfg"
-paramfile_template = "Parameters_tmp/params.template"  # Parameter file template
-paramfile_name = "Parameters_tmp/params_A{pa:.2f}_B{pb:.2f}.cfg"  # Parameter file names
+paramfile_template = "Parameters/params.template"  # Parameter file template
+paramfile_name = "Parameters/params_A{pa:.2f}_B{pb:.2f}.cfg"  # Parameter file names
 outfile_name = "Output_A{pa:.2f}_B{pb:.2f}"  # Output names
 
 # Default parameter values (cfr. Parameter file template).
