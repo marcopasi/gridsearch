@@ -79,6 +79,7 @@ try:
 except ModuleNotFoundError:
     from dummy import dummy as chemex  # this line for testing
 from sklearn.model_selection import ParameterGrid
+from joblib import Parallel, delayed
 
 # ---------------- Section 4. CONFIGURATION ----------------
 verbose = False
@@ -99,6 +100,7 @@ parameters = dict(
     kex_bc=[600],
     kex_ac=[600])
 
+n_tasks = 1  # for parallel executions, increase this above 1
 # --------------------- Section 5. RUN ---------------------
 def make_parameter_file(template, output, params):
     """Format template to output using params"""
@@ -115,7 +117,7 @@ def chemex_main(t_args):
     #        -m methodfile
     #        -o outfile
     #        -f function
-    chemex.main()
+    return chemex.main()
 
 if verbose:
     print(kexfile, function, methodfile, paramfile_template, outfile_name)
@@ -128,9 +130,10 @@ args.extend(["-d", kexfile])
 args.extend(["-f", function])
 
 # Main loop
+tasks = []  # for parallel
 for params in ParameterGrid(parameters):
     if verbose:
-        print("Running {}".formate(params))
+        print("Job with params {}".format(params))
     # Create Parameter file name by replacing placeholders
     try:
         paramfile = paramfile_name.format(**params)
@@ -163,6 +166,16 @@ Missing parameter definition for outfile_name '{}'""".format(
         ["-p", paramfile] + \
         ["-o", outfile]
 
-    chemex_main(t_args)
+    if n_tasks > 1:
+        tasks.append(delayed(chemex_main)(t_args))
+    else:
+        result = chemex_main(t_args)
+        if verbose:
+            print(result)
 
+if len(tasks) > 0:
+    results = Parallel(n_jobs=n_tasks, verbose=50*verbose)(tasks)
+    if verbose:
+        for result in results:
+            print(result)
 # ----------------------------------------------------------
